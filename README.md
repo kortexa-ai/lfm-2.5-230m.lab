@@ -12,8 +12,8 @@ A [kortexa.ai lab](https://lab.kortexa.ai) experiment.
 - [`@huggingface/transformers`](https://github.com/huggingface/transformers.js) loads
   [`LiquidAI/LFM2.5-230M-ONNX`](https://huggingface.co/LiquidAI/LFM2.5-230M-ONNX) with
   `device: "webgpu"`.
-- Quantization: `q4f32` (4-bit weights, fp32 compute) — the widest-compatible WebGPU
-  option this model ships (it has no `q4f16` export). ~180 MB on first load.
+- Quantization: `q4` (`model_q4.onnx`) — the smallest of this model's ONNX exports
+  (it ships fp32/fp16/q4/q8; no `q4f16`). ~130 MB on first load.
 - Inference runs in a Web Worker so the UI stays responsive; tokens stream in via
   `TextStreamer`.
 

@@ -5,13 +5,26 @@ import {
 } from "@huggingface/transformers";
 
 // LFM2.5-230M — the smallest LFM2.5, small enough to run comfortably in-browser.
-// LFM2.5-230M-ONNX ships fp16 / q4 / q4f32 / q8 weights (no q4f16), so we default
-// to q4f32: 4-bit weights with fp32 compute — the widest-compatible WebGPU option.
+// LFM2.5-230M-ONNX ships fp32 / fp16 / q4 / q8 ONNX weights (no q4f16). transformers.js
+// accepts the dtype tokens fp32/fp16/q8/q4/q4f16 — so we use "q4" (model_q4.onnx):
+// 4-bit weights, ~130 MB, the smallest/fastest option for an in-browser 230M chat.
 const MODEL_ID = "LiquidAI/LFM2.5-230M-ONNX";
-const DTYPE = "q4f32";
+const DTYPE = "q4";
 
 let tokenizer = null;
 let model = null;
+let chatTemplate = null;
+
+// The LFM2.5 chat template wraps assistant turns in `{%- generation -%}` /
+// `{%- endgeneration -%}` — a masking hint for training that transformers.js's Jinja
+// engine doesn't implement ("Unknown statement type: generation"). Stripping the tags
+// leaves the rendered inference prompt identical. (Do NOT touch `add_generation_prompt`.)
+function sanitizeChatTemplate(template) {
+  if (typeof template !== "string") return null;
+  return template
+    .replaceAll("{%- generation -%}", "")
+    .replaceAll("{%- endgeneration -%}", "");
+}
 
 // Check whether the model files are already in the browser's Cache Storage,
 // so the UI can say "cached" instead of implying a fresh multi-hundred-MB download.
@@ -43,6 +56,7 @@ self.onmessage = async (e) => {
       tokenizer = await AutoTokenizer.from_pretrained(MODEL_ID, {
         progress_callback: (p) => self.postMessage({ type: "progress", data: p }),
       });
+      chatTemplate = sanitizeChatTemplate(tokenizer.chat_template);
 
       self.postMessage({ type: "status", data: "Loading model onto the GPU (WebGPU)…" });
       model = await AutoModelForCausalLM.from_pretrained(MODEL_ID, {
@@ -67,6 +81,7 @@ self.onmessage = async (e) => {
       const inputs = tokenizer.apply_chat_template(data.messages || [], {
         add_generation_prompt: true,
         return_dict: true,
+        ...(chatTemplate ? { chat_template: chatTemplate } : {}),
       });
 
       self.postMessage({

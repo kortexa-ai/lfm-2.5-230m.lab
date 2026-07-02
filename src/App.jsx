@@ -134,7 +134,7 @@ export default function App() {
           <p className="muted">
             {cached
               ? "Weights are cached in this browser — loading is quick."
-              : "First run downloads ~180 MB of quantized weights (q4f32) from Hugging Face, then caches them for next time."}
+              : "First run downloads ~130 MB of 4-bit quantized weights (q4) from Hugging Face, then caches them for next time."}
           </p>
           {overallProgress !== null ? (
             <div className="progress">
