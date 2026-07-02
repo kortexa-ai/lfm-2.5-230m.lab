@@ -12,10 +12,14 @@ A [kortexa.ai lab](https://lab.kortexa.ai) experiment.
 - [`@huggingface/transformers`](https://github.com/huggingface/transformers.js) loads
   [`LiquidAI/LFM2.5-230M-ONNX`](https://huggingface.co/LiquidAI/LFM2.5-230M-ONNX) with
   `device: "webgpu"`.
-- Quantization: `q4` (`model_q4.onnx`) — the smallest of this model's ONNX exports
-  (it ships fp32/fp16/q4/q8; no `q4f16`). ~130 MB on first load.
+- Quantization is selectable on the load screen — each variant caches separately:
+  - **q4** (`model_q4.onnx`, ~200 MB) — smallest & fastest, the default, best on phones.
+  - **q8** (~470 MB) — higher quality.
+  - **fp16** (~450 MB) — best quality; coincidentally the same size as q8, because a small
+    model's embedding / lm_head dominate and stay high-precision.
 - Inference runs in a Web Worker so the UI stays responsive; tokens stream in via
-  `TextStreamer`.
+  `TextStreamer`. The bigger variants use proportionally more GPU memory and decode
+  slower (memory-bandwidth-bound) — q4 is the right pick for memory-constrained devices.
 
 ## Develop
 

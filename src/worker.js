@@ -61,7 +61,7 @@ self.onmessage = async (e) => {
       self.postMessage({ type: "status", data: "Loading model onto the GPU (WebGPU)…" });
       model = await AutoModelForCausalLM.from_pretrained(MODEL_ID, {
         device: "webgpu",
-        dtype: DTYPE,
+        dtype: data?.dtype || DTYPE,
         progress_callback: (p) => self.postMessage({ type: "progress", data: p }),
       });
 

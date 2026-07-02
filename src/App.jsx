@@ -2,8 +2,20 @@ import { useEffect, useRef, useState, useCallback } from "react";
 
 const MODEL_LABEL = "LiquidAI LFM2.5-230M";
 
+// Quantizations LFM2.5-230M-ONNX actually ships, with real download/GPU-memory sizes.
+// q8 (~470MB) is coincidentally the same size as fp16 because the embedding / lm_head
+// of a small model dominate and stay high-precision — so fp16 is the better "quality" step.
+const DTYPES = [
+  { id: "q4", label: "q4", sub: "4-bit", size: "~200 MB", note: "smallest & fastest — best on phones" },
+  { id: "q8", label: "q8", sub: "8-bit", size: "~470 MB", note: "higher quality" },
+  { id: "fp16", label: "fp16", sub: "16-bit", size: "~450 MB", note: "best quality, same size as q8" },
+];
+const dtypeInfo = (id) => DTYPES.find((d) => d.id === id) || DTYPES[0];
+
 export default function App() {
   const [webgpu, setWebgpu] = useState(true);
+  const [dtype, setDtype] = useState("q4"); // selected on the load screen
+  const [activeDtype, setActiveDtype] = useState(null); // what's actually loaded
   const [modelReady, setModelReady] = useState(false);
   const [loadingModel, setLoadingModel] = useState(false);
   const [status, setStatus] = useState("");
@@ -18,13 +30,11 @@ export default function App() {
 
   const workerRef = useRef(null);
   const scrollRef = useRef(null);
+  const requestedDtypeRef = useRef("q4");
 
-  // Spin up the inference worker once.
-  useEffect(() => {
-    if (typeof navigator !== "undefined" && !navigator.gpu) {
-      setWebgpu(false);
-      return;
-    }
+  // (Re)create the inference worker and wire up its messages.
+  const spawnWorker = useCallback(() => {
+    workerRef.current?.terminate();
     const worker = new Worker(new URL("./worker.js", import.meta.url), { type: "module" });
     workerRef.current = worker;
 
@@ -37,6 +47,7 @@ export default function App() {
           setProgress((prev) => ({ ...prev, [data.file]: Math.round(data.progress || 0) }));
         }
       } else if (type === "loaded") {
+        setActiveDtype(requestedDtypeRef.current);
         setModelReady(true);
         setLoadingModel(false);
         setStatus("");
@@ -62,8 +73,17 @@ export default function App() {
     };
 
     worker.postMessage({ type: "check" });
-    return () => worker.terminate();
+    return worker;
   }, []);
+
+  useEffect(() => {
+    if (typeof navigator !== "undefined" && !navigator.gpu) {
+      setWebgpu(false);
+      return;
+    }
+    spawnWorker();
+    return () => workerRef.current?.terminate();
+  }, [spawnWorker]);
 
   // Auto-scroll to the latest message.
   useEffect(() => {
@@ -74,8 +94,20 @@ export default function App() {
     setError(null);
     setLoadingModel(true);
     setStatus("Starting…");
-    workerRef.current?.postMessage({ type: "load" });
-  }, []);
+    requestedDtypeRef.current = dtype;
+    workerRef.current?.postMessage({ type: "load", data: { dtype } });
+  }, [dtype]);
+
+  // Unload and return to the picker so a different quant can be loaded.
+  const switchQuant = useCallback(() => {
+    setModelReady(false);
+    setActiveDtype(null);
+    setMessages([]);
+    setStats(null);
+    setError(null);
+    setInput("");
+    spawnWorker(); // fresh worker (re-checks cache for the current selection)
+  }, [spawnWorker]);
 
   const send = useCallback(() => {
     const text = input.trim();
@@ -105,6 +137,8 @@ export default function App() {
     return Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
   })();
 
+  const sel = dtypeInfo(dtype);
+
   return (
     <main className="page">
       <header className="hero">
@@ -130,12 +164,33 @@ export default function App() {
         </section>
       ) : !modelReady ? (
         <section className="panel loader">
-          <h2>Run the model</h2>
+          <h2>Choose a quantization</h2>
           <p className="muted">
-            {cached
-              ? "Weights are cached in this browser — loading is quick."
-              : "First run downloads ~130 MB of 4-bit quantized weights (q4) from Hugging Face, then caches them for next time."}
+            Smaller = faster download and less GPU memory. Bigger = better quality. The weights
+            cache in this browser after the first load of each variant.
           </p>
+
+          <div className="quant-options" role="radiogroup" aria-label="Quantization">
+            {DTYPES.map((d) => (
+              <button
+                key={d.id}
+                type="button"
+                role="radio"
+                aria-checked={dtype === d.id}
+                className={`quant ${dtype === d.id ? "selected" : ""}`}
+                onClick={() => setDtype(d.id)}
+                disabled={loadingModel}
+              >
+                <span className="quant-head">
+                  <span className="quant-label">{d.label}</span>
+                  <span className="quant-sub">{d.sub}</span>
+                </span>
+                <span className="quant-size">{d.size}</span>
+                <span className="quant-note">{d.note}</span>
+              </button>
+            ))}
+          </div>
+
           {overallProgress !== null ? (
             <div className="progress">
               <div className="bar" style={{ width: `${overallProgress}%` }} />
@@ -143,8 +198,9 @@ export default function App() {
             </div>
           ) : null}
           {status ? <p className="status">{status}</p> : null}
+
           <button className="primary" onClick={loadModel} disabled={loadingModel}>
-            {loadingModel ? "Loading…" : cached ? "Load model" : "Download & run"}
+            {loadingModel ? "Loading…" : `Download & run ${sel.label} (${sel.size})`}
           </button>
           {error ? <p className="error">{error}</p> : null}
         </section>
@@ -152,7 +208,7 @@ export default function App() {
         <section className="chat">
           <div className="messages" ref={scrollRef}>
             {messages.length === 0 ? (
-              <p className="empty">Say hello 👋 — the model is loaded and running on your GPU.</p>
+              <p className="empty">Say hello 👋 — {MODEL_LABEL} ({activeDtype}) is running on your GPU.</p>
             ) : (
               messages.map((m, i) => (
                 <div key={i} className={`msg ${m.role}`}>
@@ -178,11 +234,15 @@ export default function App() {
             </button>
           </div>
           <div className="footer">
-            {stats ? (
-              <span>{stats.tokenCount} tokens · {stats.tokensPerSec.toFixed(1)} tok/s</span>
-            ) : (
-              <span className="muted">running locally · WebGPU</span>
-            )}
+            <span>
+              {stats
+                ? `${stats.tokenCount} tokens · ${stats.tokensPerSec.toFixed(1)} tok/s`
+                : "running locally · WebGPU"}
+              {" · "}
+              <button className="linkish" onClick={switchQuant} disabled={generating}>
+                {activeDtype} ⇄ switch quant
+              </button>
+            </span>
             {error ? <span className="error"> · {error}</span> : null}
           </div>
         </section>
