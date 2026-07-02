@@ -15,15 +15,15 @@ let tokenizer = null;
 let model = null;
 let chatTemplate = null;
 
-// The LFM2.5 chat template wraps assistant turns in `{%- generation -%}` /
-// `{%- endgeneration -%}` — a masking hint for training that transformers.js's Jinja
+// LFM2.5 chat templates wrap assistant turns in `{% generation %}` /
+// `{% endgeneration %}` — a training-time masking hint that transformers.js's Jinja
 // engine doesn't implement ("Unknown statement type: generation"). Stripping the tags
-// leaves the rendered inference prompt identical. (Do NOT touch `add_generation_prompt`.)
+// (in any whitespace-control form) leaves the rendered inference prompt identical.
+// The tag close (`%}`) must follow `generation` directly, so `add_generation_prompt`
+// (followed by `_prompt`) is never matched.
 function sanitizeChatTemplate(template) {
   if (typeof template !== "string") return null;
-  return template
-    .replaceAll("{%- generation -%}", "")
-    .replaceAll("{%- endgeneration -%}", "");
+  return template.replace(/\{%[-+]?\s*(?:end)?generation\s*[-+]?%\}/g, "");
 }
 
 // Check whether the model files are already in the browser's Cache Storage,
