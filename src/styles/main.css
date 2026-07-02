@@ -1,0 +1,146 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #faf8f5;
+  --ink: #1a1a1a;
+  --muted: #6b6b6b;
+  --line: #e7e2da;
+  --accent: #2563eb;
+  --accent-ink: #ffffff;
+  --user: #eef2ff;
+  --card: #ffffff;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root { height: 100%; margin: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Space Grotesk", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.page {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 2.5rem 1.25rem 3rem;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.hero { margin-bottom: 1.5rem; }
+
+.brand { display: flex; align-items: center; gap: 0.55rem; margin-bottom: 0.75rem; }
+.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15); }
+.eyebrow { margin: 0; font-size: 0.75rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+
+.hero h1 { margin: 0 0 0.5rem; font-size: 2rem; font-weight: 700; letter-spacing: -0.02em; }
+.lede { margin: 0; color: #444; line-height: 1.55; max-width: 60ch; }
+.lede strong { color: var(--ink); }
+
+.panel {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 1.5rem;
+}
+.panel h2 { margin: 0 0 0.5rem; font-size: 1.15rem; }
+.notice p { color: #444; line-height: 1.55; margin: 0; }
+
+.muted { color: var(--muted); }
+.status { font-family: "JetBrains Mono", monospace; font-size: 0.8rem; color: var(--muted); margin: 0.75rem 0 0; }
+
+.loader .muted { line-height: 1.55; margin: 0 0 1rem; }
+
+.progress {
+  position: relative;
+  height: 12px;
+  background: #efeae2;
+  border-radius: 999px;
+  overflow: hidden;
+  margin: 0.75rem 0;
+}
+.progress .bar { height: 100%; background: var(--accent); transition: width 0.2s ease; }
+.progress .pct {
+  position: absolute; right: 8px; top: -22px;
+  font-family: "JetBrains Mono", monospace; font-size: 0.72rem; color: var(--muted);
+}
+
+button.primary {
+  appearance: none;
+  border: none;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 0.95rem;
+  padding: 0.7rem 1.2rem;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: filter 0.15s ease, transform 0.05s ease;
+}
+button.primary:hover:not(:disabled) { filter: brightness(1.05); }
+button.primary:active:not(:disabled) { transform: translateY(1px); }
+button.primary:disabled { opacity: 0.5; cursor: default; }
+
+.error { color: #c0392b; font-size: 0.85rem; margin: 0.6rem 0 0; }
+
+/* Chat */
+.chat { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--card);
+  padding: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.empty { color: var(--muted); text-align: center; margin: auto; }
+
+.msg { display: flex; flex-direction: column; gap: 0.3rem; }
+.msg .who { font-size: 0.7rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.msg .bubble {
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+  padding: 0.7rem 0.9rem;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: #fbfaf8;
+}
+.msg.user { align-items: flex-end; }
+.msg.user .bubble { background: var(--user); border-color: #dfe4ff; }
+.msg.user .who { text-align: right; }
+
+.caret { display: inline-block; width: 8px; height: 1.1em; background: var(--accent); border-radius: 1px; animation: blink 1s steps(2, start) infinite; vertical-align: text-bottom; }
+@keyframes blink { to { visibility: hidden; } }
+
+.composer { display: flex; gap: 0.6rem; margin-top: 0.9rem; align-items: flex-end; }
+.composer textarea {
+  flex: 1;
+  resize: none;
+  font-family: inherit;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+  color: var(--ink);
+  max-height: 160px;
+}
+.composer textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12); }
+
+.footer {
+  margin-top: 0.7rem;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-align: right;
+}

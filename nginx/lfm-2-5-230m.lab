@@ -1,0 +1,9 @@
+# Lab demo fragment: lfm-2-5-230m served at /lfm-2-5-230m/
+location = /lfm-2-5-230m {
+    return 302 /lfm-2-5-230m/;
+}
+
+location /lfm-2-5-230m/ {
+    alias /Users/francip/src/lfm-2.5-230m.lab/dist/;
+    try_files $uri $uri/ /lfm-2-5-230m/index.html;
+}
