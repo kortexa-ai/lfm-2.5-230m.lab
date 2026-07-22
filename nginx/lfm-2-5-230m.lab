@@ -4,6 +4,6 @@ location = /lfm-2-5-230m {
 }
 
 location /lfm-2-5-230m/ {
-    alias /Users/francip/src/lfm-2.5-230m.lab/dist/;
+    alias $src_root/lfm-2.5-230m.lab/dist/;
     try_files $uri $uri/ /lfm-2-5-230m/index.html;
 }
